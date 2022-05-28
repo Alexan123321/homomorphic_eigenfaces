@@ -23,15 +23,20 @@ class EigenfacesServer:
     mean_face: np.array([])
     projected_training_images: np.array([])
 
+    '''
+    SUMMARY: This method initializes the EigenfacesServer. 
+    PARAMETERS: The method takes 5 client-side function calls as arguments, and makes
+    local references to these in the server. 
+    RETURNS: NONE.
+    '''
     def __init__(self, no_components_function, minimum_distance_function, 
-    goldschmidt_initializer_function, reencrypt_function, reencrypt_vec_function, decrypt_vec_function) -> None:
+    goldschmidt_initializer_function, reencrypt_function, reencrypt_vec_function) -> None:
         self.is_trained = False
         self.determine_components = no_components_function
         self.distance_comparison = minimum_distance_function
         self.goldschmidt_initializer = goldschmidt_initializer_function
         self.reencrypt = reencrypt_function
         self.reencrypt_vec = reencrypt_vec_function
-        self.sletsenere = decrypt_vec_function
 
     def Train(self, normalized_training_images: np.array([]), vectorized_training_images: np.array([])) -> None:
         '''
@@ -410,19 +415,30 @@ class EigenfacesServer:
 @dataclass
 class EigenfacesClient:
     '''
-    SUMMARY: 
-    ATTRIBUTES: 
-    METHODS:
+    SUMMARY: This is the EigenfacesClient class, whose main purpose is to 
+    preprocess images for the Eigenfaces algorithm and provide support functions for the
+    server, such that it is homomorphically translatable. This includes division initialization,
+    and comparison operations.
+    ATTRIBUTES: NONE.
+    METHODS: The class has two primary methods, one that normalizes images and one that vectorizes
+    them, and three utility methods. 
     '''
 
-    #TODO: MAKE DOCSTRING:
+    '''
+    SUMMARY: This is the initializer of the EigenfacesClient. The initializer sets the encryption
+    context, which is used whenever an encryption or a decryption is to be facilitated. 
+    RETURNS: 
+    '''
     def __init__(self) -> None:
+        # Create tenSEAL context: 
         self.context = ts.context(
             ts.SCHEME_TYPE.CKKS,
             poly_modulus_degree= 32768,
             coeff_mod_bit_sizes=[60, 40, 40, 40, 60]
           )
+        # Generate galois keys for context: 
         self.context.generate_galois_keys()
+        # Set the global scale for the context:
         self.context.global_scale = 2**40
 
     def Image_preprocesser(self, images: np.array([])) -> np.array([]):
@@ -453,9 +469,10 @@ class EigenfacesClient:
     #TODO: DOCSTRING:
     def Image_vector_representation(self, normalized_images: np.array([])) -> np.array([]):
         '''
-        SUMMARY:
-        PARAMETERS:
-        RETURNS: 
+        SUMMARY: This method takes a a list of normalized images, where each image is 
+        represented as a matrix and transforms these matrix images to their vector-representation.
+        PARAMETERS: A numpy array of normalized images.
+        RETURNS: A numpy array of vectorized images.
         '''
         #Then find the number of entries in each image:
         n_image_entries = normalized_images[0].size
@@ -471,12 +488,12 @@ class EigenfacesClient:
         #Return processed images:
         return processed_images
 
-    #TODO: DOCSTRING:
     def Encrypt(self, mat: np.array([])) -> np.array([]):
         '''
-        SUMMARY:
-        PARAMETERS: 
-        RETURNS:
+        SUMMARY: This method takes an image, that is a matrix, as input and encrypts it
+        using the encryption context created during initialization of the server.
+        PARAMETERS: The method takes a matrix, which should be a numpy array, as input.
+        RETURNS: Returns an encrypted image. 
         '''
         #Instantiate a temporary list:
         enc_mat = []
@@ -491,80 +508,91 @@ class EigenfacesClient:
         #Lastly, return the encrypted matrix:
         return enc_mat
 
-    #TODO: DOCSTRING:
-    def _encrypt_vec(self, vec: np.array([])) -> np.array([]):
+    def _encrypt_vec(self, V: np.array([])) -> np.array([]):
         '''
-        SUMMARY:
-        PARAMETERS: 
-        RETURNS:
+        SUMMARY: This method takes a vector as input and encrypts every entry in the vector.
+        PARAMETERS: A vector, V, which should be a numpy array. 
+        RETURNS: An encrypted vector. 
         '''
         #Instantiate temporary lists:
         enc_vec = []
         vec_temp = []
         #Determine the length of the input vector:
-        n = len(vec)
+        n = len(V)
         #Then encrypt every entry in the original vector:
         for i in range(0, n):
-            vec_temp = [vec[i]]
+            vec_temp = [V[i]]
             enc_vec.append(ts.ckks_vector(self.context, vec_temp))
         #Convert the list to a numpy array:
         enc_vec = np.array(enc_vec)
         #And, return it:
         return(enc_vec)
 
-    #TODO: DOCSTRING AND COMMENTS:
-    def _reencrypt_vec(self, vec: np.array([])) -> np.array([]):
+    def _reencrypt_vec(self, V: np.array([])) -> np.array([]):
+        '''
+        SUMMARY: This method takes an encrypted vector as input and reencrypts it to restore
+        it's multiplicative level.
+        PARAMETERS: An encrypted vector, V, which must be a numpy array. 
+        RETURNS: Returns an encrypted vector as a numpy array. 
+        '''
         #Decrypt the input vector:
-        dec_vec = self._decrypt_vec(vec)
+        dec_vec = self._decrypt_vec(V)
         #Reencrypt the decrypted vector:
         reenc_vec = self._encrypt_vec(dec_vec)
         #Return the reencrypted vector: 
         return reenc_vec
 
-    #TODO: DOCSTRING:
-    def _reencrypt_mat(self, mat: np.array([])) -> np.array([]):
+    def _reencrypt_mat(self, M: np.array([])) -> np.array([]):
+        '''
+        SUMMARY: This method takes an encrypted matrix as input and reencrypts it to restore
+        it's multiplicative level.
+        PARAMETERS: An encrypted matrix, M, which must be a numpy array. 
+        RETURNS: Returns an encrypted matrix as a numpy array. 
+        '''
         #Decrypt the input matrix of images: 
-        dec_mat = self.Decrypt(mat)
+        dec_mat = self.Decrypt(M)
         #Reencrypt the decrypted matrix of images:
         reenc_mat = self.Encrypt(dec_mat)
         #Return the reencrypted matrix of images: 
         return reenc_mat
 
-    #TODO: DOCSTRING:
-    def Decrypt(self, mat: np.array([])) -> np.array([]):
+    def Decrypt(self, M: np.array([])) -> np.array([]):
         '''
-        SUMMARY:
-        PARAMETERS: 
-        RETURNS:
+        SUMMARY: This method takes an image, that is a matrix, as input, and decrypts it
+        using the decryption context created during initialization of the server.
+        PARAMETERS: The method takes an encrypted matrix, M, which should be a numpy array, 
+        as input.
+        RETURNS: Returns an unencrypted image as a numpy array. 
         '''
         #Instantiate a temporary list:
         dec_mat = []
         #Determine the number of entries in the input matrix:
-        n = len(mat)
+        n = len(M)
         #Decrypt each vector in the matrix:
         for i in range(0, n):
-            dec_pic = self._decrypt_vec(mat[i])
+            dec_pic = self._decrypt_vec(M[i])
             dec_mat.append(dec_pic)
         #Convert decrypted matrix to a numpy array: 
         dec_mat = np.array(dec_mat)
         #Lastly, return the decrypted matrix:
         return(dec_mat)
 
-    #TODO: DOCSTRING:
-    def _decrypt_vec(self, vec: np.array([])) -> np.array([]):
+    def _decrypt_vec(self, V: np.array([])) -> np.array([]):
         '''
-        SUMMARY:
-        PARAMETERS: 
-        RETURNS:
+        SUMMARY: This method takes an encrypted vector as input, and decrypts it
+        using the decryption context created during initialization of the server.
+        PARAMETERS: An encrypted vector, V, which should be a numpy array, 
+        as input.
+        RETURNS: Returns an unencrypted image as a numpy array. 
         '''
         #Instantiate temporary lists:
         dec_vec = []
         vec_temp = []
         #Determine the length of the input vector:
-        n = len(vec)
+        n = len(V)
         #Decrypt each entry in the original vector:
         for i in range(0, n):
-            vec_temp = vec[i].decrypt()
+            vec_temp = V[i].decrypt()
             dec_vec.append(vec_temp[0])    
         #Concert list to numpy array: 
         dec_vec = np.array(dec_vec)
@@ -599,7 +627,6 @@ class EigenfacesClient:
         D = self._decrypt_vec(D)
         return np.argmin(D) #NN
 
-    #TODO: CORRECT DOCSTRING AND MAKE COMMENTS:
     def _goldschmidt_initializer(self, x: np.array([])) -> np.array([]):
         '''
         SUMMARY: Returns the fraction 1/x.
