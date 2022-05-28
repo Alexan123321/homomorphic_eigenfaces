@@ -269,8 +269,6 @@ class EigenfacesServer:
         # Calculate and the return the projection:
         p = []
 
-        print("X is:")
-        print(X)
         for xi in X:
             temp = np.dot(xi.reshape(1 , -1) - mu, W)
             p.append(temp)
