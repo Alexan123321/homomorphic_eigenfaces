@@ -466,7 +466,6 @@ class EigenfacesClient:
             normalized_images.append(image)
         return normalized_images
 
-    #TODO: DOCSTRING:
     def Image_vector_representation(self, normalized_images: np.array([])) -> np.array([]):
         '''
         SUMMARY: This method takes a a list of normalized images, where each image is 
