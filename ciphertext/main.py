@@ -41,7 +41,7 @@ if __name__ == '__main__':
     Client = EigenfacesClient()
     # Create the Eigenfaces server and inject the client-sided functionality into its initializer:
     Server = EigenfacesServer(Client._n_components_comparison, Client._distance_comparison, 
-    Client._goldschmidt_initializer, Client._reencrypt_mat,Client._reencrypt_vec,Client._decrypt_vec)
+    Client._goldschmidt_initializer, Client._reencrypt_mat,Client._reencrypt_vec)
 
     # Load training images and test image from paths: 
     training_images, training_image_labels = load_images(TRAINING_IMAGES_PATH)
@@ -70,7 +70,9 @@ if __name__ == '__main__':
         encrypted_normalized_test_images.append(Client.Encrypt(i))
 
     #Test the module: 
-    tests = TestSuite(Server)
+    tests = TestSuite(Server, Client)
     tests.computation_time_training(encrypted_normalized_training_images, encrypted_vectorized_training_images)
     tests.computation_time_classification(encrypted_normalized_test_images, training_image_labels)
     tests.prediction_accuracy(test_image_labels)
+    tests.computation_time_encryption(normalized_training_images)
+    tests.computation_time_decryption(encrypted_normalized_training_images)

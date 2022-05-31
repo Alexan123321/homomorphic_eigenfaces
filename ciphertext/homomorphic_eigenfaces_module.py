@@ -215,13 +215,6 @@ class EigenfacesServer:
         return res
 
     def _pow_eig_comb(self, C: np.array([])) -> np.array([]):
-        '''
-        SUMMARY: This method calculates the all eigenvalues and eigenvectors, 
-        from a covariance matrix.
-        PARAMETERS: A numpy list, representing the covariance matrix, C.
-        RETURNS: Two numpy lists: one including the eigenvalues (Lambdas) and one representing the 
-        eigenvectors, W.
-        '''
         # Determine the number of entries in the covariance matrix:
         n = len(C)
         # Initialize storage for the eigenvalues:
@@ -231,7 +224,7 @@ class EigenfacesServer:
         # Initialize the dividend:
         dividend = 1
         # Calculate the eigenvectors:
-        for i in range (n):
+        for _ in range (n):
             # Number of iterations for approximating the eigenvectors and eigenvalues:
             no_iterations = 2 
             # Initialize the "old" eigenvector:
@@ -316,7 +309,7 @@ class EigenfacesServer:
 
     def _vec_cross(self, V1: np.array([]), V2: np.array([])) -> np.array([]):
         '''
-        SUMMARY: This method calculates cross product of two vector. The method is 
+        SUMMARY: This method calculates cross product of two vectors. The method is 
         used for shifting the covaraince matrix.
         PARAMETERS: A numpy list, representing the covariance matrix, C.
         RETURNS: Two numpy lists: one including the eigenvalues (Lambdas) and one representing the 
@@ -411,7 +404,6 @@ class EigenfacesServer:
             p.append(temp)
         return p
 
-#TODO: DOCSTRING:
 @dataclass
 class EigenfacesClient:
     '''
